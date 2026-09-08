@@ -9,6 +9,7 @@ font-family: sans-serif;
     background-color: #f4f4f4;
 }
 .header {
+    /*주요 측의 정렬 */
     display: flex;
     justify-content: space-between;
     align-items: center;
