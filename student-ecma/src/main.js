@@ -131,152 +131,73 @@ async function loadStudents() {
     }
 }
 
-
-// 학생 수정전에 데이터를 로드하는 함수
-async function editStudent(studentId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            const defaultMsg = response.status === 404 ? "존재하지 않는 학생입니다." : "학생 정보를 불러오는데 실패했습니다.";
-            throw new Error(data.message || defaultMsg);
-        }
-
-        // 폼에 데이터 채우기 (옵셔널 체이닝으로 간소화)
-        studentForm.name.value = data.name || '';
-        studentForm.studentNumber.value = data.studentNumber || '';
-        studentForm.address.value = data.detail?.address || '';
-        studentForm.phoneNumber.value = data.detail?.phoneNumber || '';
-        studentForm.email.value = data.detail?.email || '';
-        studentForm.dateOfBirth.value = data.detail?.dateOfBirth || '';
-
-        // 수정 모드로 설정
-        editingStudentId = studentId;
-        submitButton.textContent = '학생 수정';
-        studentForm.scrollIntoView({ behavior: 'smooth' });
-        cancelButton.style.display = 'inline-block';
-    } catch (error) {
-        console.error('Error:', error.message);
-        showError(error.message);
-    }
-};
-
-async function updateStudent(studentId, studentData) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(studentData),
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            const defaultMsg = response.status === 409 ? "학생정보가 중복됩니다." : "학생정보 수정에 실패했습니다.";
-            throw new Error(data.message || defaultMsg);
-        }
-
-        resetForm();
-        showSuccess('학생 정보가 성공적으로 수정되었습니다.');
-        loadStudents();
-        return data;
-    } catch (error) {
-        console.error('Error:', error);
-        showError(error.message);
-    }
-}
-
-// async/await 사용한 학생 등록 함수 
 async function createStudent(studentData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/students`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(studentData),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            const defaultMsg = response.status === 409 ? "이미 등록된 학번(이메일,전화번호)입니다." : "학생 등록에 실패했습니다.";
-            // resonponse.json() 로 받은 객체가 백엔드에서는 ErrorObject
-            throw new Error(data.message || defaultMsg);
-        }
-
+        await apiCreateStudent(studentData);
+ 
         showSuccess("학생이 성공적으로 등록되었습니다.");
-        resetForm();
+        studentForm.reset();
         loadStudents();
-        return data;
     } catch (error) {
-        console.error("Error:", error.message);
-        //studentForm.reset();
+        console.error("Error:", error);
         showError(error.message);
     }
 }
 
-// 학생 삭제 함수
-async function deleteStudent(studentId) {
-    if (!confirm('정말로 이 학생을 삭제하시겠습니까?')) return;
-
+// 학생 수정 처리
+async function updateStudent(studentId, studentData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const defaultMsg = response.status === 404 ? "존재하지 않는 학생입니다." : "학생 삭제에 실패했습니다.";
-            throw new Error(errorData.message || defaultMsg)
-        }
-
-        showSuccess('학생이 성공적으로 삭제되었습니다.');
-        loadStudents(); // 목록 새로고침
+        await apiUpdateStudent(studentId, studentData);
+ 
+        resetForm();   // clearMessages() 가 들어 있으므로 메시지보다 먼저
+        showSuccess("학생 정보가 성공적으로 수정되었습니다.");
+        loadStudents();
     } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
         showError(error.message);
     }
 }
-
-// 학생 등록 함수 
-function createStudent_then(studentData) {
-    console.log("학생 등록...");
-    fetch(`${API_BASE_URL}/api/students`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(studentData),
-    })
-        .then(async (response) => {
-            if (!response.ok) {
-                // 응답 본문을 읽어서 에러 메시지 추출
-                const errorData = await response.json();
-
-                // 상태 코드와 메시지를 확인하여 적절한 에러 처리
-                if (response.status === 409) {
-                    // 중복 오류 처리
-                    throw new Error(errorData.message || "이미 등록된 학번입니다.");
-                } else {
-                    // 기타 오류 처리
-                    throw new Error(errorData.message || "학생 등록에 실패했습니다.");
-                }
-            }
-            return response.json();
-        })
-        .then((result) => {
-            alert("학생이 성공적으로 등록되었습니다.");
-            studentForm.reset();
-            loadStudents(); // 목록 새로고침
-        })
-        .catch((error) => {
-            console.error("Error:", error.message);
-            //alert(error.message);  // 실제 서버에서 온 에러 메시지 표시
-            showError(error.message);
-        });
+ 
+// 학생 삭제 — confirm 은 화면 처리이므로 그대로 남는다
+async function deleteStudent(studentId) {
+    if (!confirm("정말로 이 학생을 삭제하시겠습니까?")) {
+        return;
+    }
+ 
+    try {
+        await apiDeleteStudent(studentId);
+ 
+        showSuccess("학생이 성공적으로 삭제되었습니다.");
+        loadStudents();
+    } catch (error) {
+        console.error("Error:", error);
+        showError(error.message);
+    }
 }
-
-
+ 
+// 수정 전 데이터 로드 — 폼 채우기는 실습 4-9 에서 fillForm 으로 옮긴다
+async function editStudent(studentId) {
+    try {
+        const student = await apiFetchStudent(studentId);
+ 
+        studentForm.name.value = student.name;
+        studentForm.studentNumber.value = student.studentNumber;
+ 
+        if (student.detail) {
+            studentForm.address.value = student.detail.address;
+            studentForm.phoneNumber.value = student.detail.phoneNumber;
+            studentForm.email.value = student.detail.email || "";
+            studentForm.dateOfBirth.value = student.detail.dateOfBirth || "";
+        }
+ 
+        editingStudentId = studentId;
+        submitButton.textContent = "학생 수정";
+        studentForm.scrollIntoView({ behavior: "smooth" });
+    } catch (error) {
+        console.error("Error:", error);
+        showError(error.message);
+    }
+}
 
 
 function renderStudentTable(students) {
