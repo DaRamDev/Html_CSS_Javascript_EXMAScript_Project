@@ -1,6 +1,7 @@
 .counter {
   font-size: 16px;
   padding: 5px 10px;
+  
   border-radius: 5px;
   color: var(--accent);
   background: var(--accent-bg);
@@ -16,6 +17,7 @@
     outline-offset: 2px;
   }
 }
+
 
 .hero {
   position: relative;
