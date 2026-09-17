@@ -56,4 +56,4 @@ const MyComponentFunc = ({ name, age, children }) => {
     );
 };
 
-export default MyComponentFunc; 
+export default MyComponentFunc;
